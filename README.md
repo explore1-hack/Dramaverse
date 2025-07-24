@@ -26,7 +26,7 @@ Absolutely! Here's a complete and **clean README.md** for your project **"CinePs
 
 ## 📸 Demo
 
-![Demo Screenshot](assets/screenshot.png)
+![Demo Screenshot](screenshot.png)
 
 > Live demo coming soon on Streamlit Cloud!
 
