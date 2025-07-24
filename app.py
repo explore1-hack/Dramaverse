@@ -29,7 +29,7 @@ def add_bg_from_local(image_path):
     )
 
 # Call it just after st.set_page_config()
-add_bg_from_local("assets/background-min.png")
+add_bg_from_local("background-min.png")
 
 st.markdown("""
     <style>
