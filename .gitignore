@@ -1,0 +1,42 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.egg
+*.egg-info/
+
+# Environment files
+.env
+*.env
+
+# Jupyter notebooks
+.ipynb_checkpoints
+
+# VSCode settings
+.vscode/
+
+# Mac and system files
+.DS_Store
+Thumbs.db
+
+# Streamlit cache
+.streamlit/
+
+# Model/data/output files
+*.log
+*.csv
+*.db
+*.sqlite3
+*.h5
+*.zip
+*.tar.gz
+*.ckpt
+
+# Image assets (optional: remove if you want to version control them)
+assets/
+
+# Virtual environment folders
+venv/
+env/
