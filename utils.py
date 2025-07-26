@@ -103,14 +103,14 @@ def get_aka_titles(movie):
 
 
 def guess_movie_from_description(desc, attempt=0):
-    desc = desc.lower()
-    if "fly" in desc or "cape" in desc:
-        return ["Superman", "Krrish", "Iron Man"][attempt]
-    if "dance" in desc and "college" in desc:
-        return ["Student of the Year", "Gully Boy", "Step Up"][attempt]
-    if "hammer" in desc or "thunder" in desc:
-        return ["Thor", "Thor: Ragnarok", "Avengers"][attempt]
-    return random.choice([
-        "Dhoom 2", "Inception", "Bahubali", "3 Idiots", "Titanic", "Jawan"
-    ])
+    prompt = f"""
+You are a movie expert AI. The user will describe an action or acting scene someone performed. Based on that description, you have to intelligently guess the movie they are trying to act out. Respond only with one likely movie name. 
+
+Acting Description: "{desc}"
+
+Guess the movie:
+"""
+    # Example LLM call
+    return ask_llm_for_question({"q": prompt})  # Or call your central LLM function
+
 
