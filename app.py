@@ -1,80 +1,10 @@
 import streamlit as st
 import random
 from qloo_client import get_movies_by_tag
-from utils import generate_dramatic_summary, generate_mood_shayari, ask_llm_for_question, infer_genre_from_answers
-
+from utils import generate_dramatic_summary, generate_mood_shayari, ask_llm_for_question, infer_genre_from_answers, guess_movie_from_description
 
 import base64
 from pathlib import Path
-from utils import guess_movie_from_description  # make sure it's imported
-
-
-
-# ─── CineGuess Chatbot ────────────────────────────────
-st.markdown("---")
-st.markdown("""
-    <style>
-    .cine-box {
-        background-color: #1e1e1e;
-        padding: 1rem;
-        margin-top: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 0 10px #ff66cc;
-        color: #fff;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown('<div class="cine-box">🎬 <b>CineGuess – Acting Game Chatbot</b></div>', unsafe_allow_html=True)
-
-if "cineguess_history" not in st.session_state:
-    st.session_state.cineguess_history = []
-if "cineguess_attempts" not in st.session_state:
-    st.session_state.cineguess_attempts = 0
-if "cineguess_active" not in st.session_state:
-    st.session_state.cineguess_active = True
-
-st.markdown("**Hint:** Try describing the act someone did. I’ll guess the movie!")
-
-suggestions = [
-    "🎭 Pretending to fly like a superhero.",
-    "💃 Dancing in a college canteen.",
-    "🔨 Lifting a hammer and summoning lightning.",
-    "😢 Crying at a train station.",
-    "🔫 Slow-motion gunfight while jumping.",
-    "🌊 Stretching arms on a ship deck."
-]
-st.markdown(f"🧠 Example: _{random.choice(suggestions)}_")
-
-cine_input = st.chat_input("Describe an act, and I'll guess the movie!")
-
-if cine_input and st.session_state.cineguess_active:
-    st.session_state.cineguess_history.append({"user": cine_input})
-    
-    # ✅ This line must be here, not at the top!
-    guess = guess_movie_from_description(cine_input, st.session_state.cineguess_attempts)
-
-    st.session_state.cineguess_history.append({"bot": guess})
-    st.session_state.cineguess_attempts += 1
-
-    if st.session_state.cineguess_attempts >= 3:
-        st.session_state.cineguess_active = False
-
-
-# Display CineGuess chat
-for entry in st.session_state.cineguess_history:
-    if "user" in entry:
-        st.markdown(f"🧍‍♂️ **You:** {entry['user']}")
-    else:
-        st.markdown(f"🤖 **CineGuess:** {entry['bot']}")
-
-# Reset option
-if not st.session_state.cineguess_active:
-    st.markdown("😅 I’ve tried 3 times! Want to try again?")
-    if st.button("🎲 Play CineGuess Again"):
-        st.session_state.cineguess_history = []
-        st.session_state.cineguess_attempts = 0
-        st.session_state.cineguess_active = True
 
 # --- Background Image Setup ---
 def add_bg_from_local(image_path):
@@ -149,164 +79,230 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-title">🧠 CinePsych - The Movie Mood Reader</div>', unsafe_allow_html=True)
+# --- App Header + Chatbot Selector ---
+st.markdown('<div class="main-title">🎥 Welcome to Dramaverse</div>', unsafe_allow_html=True)
+st.markdown("### What would you like to explore today?")
 
-# --- Chat UI functions ---
-def show_ai_msg(msg):
-    st.markdown(f'<div class="chat-bubble ai-bubble">🤖 {msg}</div>', unsafe_allow_html=True)
+bot_choice = st.radio(
+    "Choose your experience:",
+    ["🎭 CinePsych - Mood Movie Recommender", "🎬 CineGuess - Acting Game"],
+    horizontal=True
+)
 
-def show_user_msg(msg):
-    st.markdown(f'<div class="chat-bubble user-bubble">🧑 {msg}</div>', unsafe_allow_html=True)
+# ===============================
+# ==== 🎭 CinePsych BLOCK =======
+# ===============================
+if bot_choice == "🎭 CinePsych - Mood Movie Recommender":
+    def show_ai_msg(msg):
+        st.markdown(f'<div class="chat-bubble ai-bubble">🤖 {msg}</div>', unsafe_allow_html=True)
 
-# --- Session state ---
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "step" not in st.session_state:
-    st.session_state.step = 0
-if "answers" not in st.session_state:
-    st.session_state.answers = {}
-if "lang" not in st.session_state:
-    st.session_state.lang = "English"
+    def show_user_msg(msg):
+        st.markdown(f'<div class="chat-bubble user-bubble">🧑 {msg}</div>', unsafe_allow_html=True)
 
-# --- Step 0: Choose Bollywood or Hollywood ---
-if st.session_state.step == 0:
-    show_ai_msg("🎭 Hello! I'm <b>CinePsych</b>, your AI movie mood reader.<br><br>First, tell me — are you into <b>Hollywood</b> or <b>Bollywood</b> vibes today?")
-    user = st.chat_input("Type: Hollywood or Bollywood")
-    if user:
-        show_user_msg(user)
-        st.session_state.lang = "Hindi" if "bolly" in user.lower() else "English"
-        st.session_state.answers["cinema_type"] = user
-        st.session_state.step += 1
-        st.rerun()
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    if "step" not in st.session_state:
+        st.session_state.step = 0
+    if "answers" not in st.session_state:
+        st.session_state.answers = {}
+    if "lang" not in st.session_state:
+        st.session_state.lang = "English"
 
-# --- Steps 1 to 5: Dynamic LLM questions ---
-elif st.session_state.step in [1, 2, 3, 4, 5]:
-    if len(st.session_state.chat_history) < st.session_state.step:
-        with st.spinner("🤔 Thinking of a good question..."):
-            q = ask_llm_for_question(st.session_state.answers)
-            st.session_state.chat_history.append({"question": q})
-            st.rerun()
-    else:
-        question = st.session_state.chat_history[st.session_state.step - 1]["question"]
-        show_ai_msg(question)
-        user = st.chat_input("Your reply...")
+    if st.session_state.step == 0:
+        show_ai_msg("🎭 Hello! I'm <b>CinePsych</b>, your AI movie mood reader.<br><br>First, tell me — are you into <b>Hollywood</b> or <b>Bollywood</b> vibes today?")
+        user = st.chat_input("Type: Hollywood or Bollywood")
         if user:
             show_user_msg(user)
-            st.markdown('<div class="thinking">🤖 Thinking...</div>', unsafe_allow_html=True)
-            st.session_state.answers[f"q{st.session_state.step}"] = user
+            st.session_state.lang = "Hindi" if "bolly" in user.lower() else "English"
+            st.session_state.answers["cinema_type"] = user
             st.session_state.step += 1
             st.rerun()
 
-# --- Step 6: Final prediction & movie suggestion ---
-elif st.session_state.step == 6:
-    with st.spinner("🧠 Reading your mood..."):
-        mood_genre = infer_genre_from_answers(st.session_state.answers)
-        tag_map = {
-            "Drama": "urn:tag:genre:media:drama",
-            "Comedy": "urn:tag:genre:media:comedy",
-            "Romance": "urn:tag:genre:media:romance",
-            "Thriller": "urn:tag:genre:media:thriller",
-            "Family": "urn:tag:genre:media:family",
-            "Fantasy": "urn:tag:genre:media:fantasy",
-            "Adventure": "urn:tag:genre:media:adventure"
-        }
-
-        genre_tag = tag_map.get(mood_genre, tag_map["Drama"])
-        movies = get_movies_by_tag(genre_tag)
-
-        if not movies or not mood_genre:
-            show_ai_msg("😔 Hmm... I'm not feeling quite myself today.<br><br>Would you like to help me feel better?")
-            user_response = st.chat_input("Say 'yes' to continue or anything else to exit.")
-            if user_response and "yes" in user_response.lower():
-                show_user_msg(user_response)
-                st.session_state.step = 1
-                show_ai_msg("🥹 You're the best. Let’s try again with a fresh perspective...")
+    elif st.session_state.step in [1, 2, 3, 4, 5]:
+        if len(st.session_state.chat_history) < st.session_state.step:
+            with st.spinner("🤔 Thinking of a good question..."):
+                q = ask_llm_for_question(st.session_state.answers)
+                st.session_state.chat_history.append({"question": q})
                 st.rerun()
-            else:
-                show_user_msg(user_response or "...")
-                show_ai_msg("I understand. Let’s chat another time. Take care. 💜")
-                st.session_state.step = 999
         else:
-            movie = random.choice(movies[:5])
-            title = movie.get("name", "Untitled")
-            desc = movie.get("properties", {}).get("description", "")
-            image = movie.get("properties", {}).get("image", {}).get("url", "https://via.placeholder.com/300")
+            question = st.session_state.chat_history[st.session_state.step - 1]["question"]
+            show_ai_msg(question)
+            user = st.chat_input("Your reply...")
+            if user:
+                show_user_msg(user)
+                st.markdown('<div class="thinking">🤖 Thinking...</div>', unsafe_allow_html=True)
+                st.session_state.answers[f"q{st.session_state.step}"] = user
+                st.session_state.step += 1
+                st.rerun()
 
-            poetic_line = generate_dramatic_summary(title, desc)
-            shayari = generate_mood_shayari(mood_genre, st.session_state.lang)
+    elif st.session_state.step == 6:
+        with st.spinner("🧠 Reading your mood..."):
+            mood_genre = infer_genre_from_answers(st.session_state.answers)
+            tag_map = {
+                "Drama": "urn:tag:genre:media:drama",
+                "Comedy": "urn:tag:genre:media:comedy",
+                "Romance": "urn:tag:genre:media:romance",
+                "Thriller": "urn:tag:genre:media:thriller",
+                "Family": "urn:tag:genre:media:family",
+                "Fantasy": "urn:tag:genre:media:fantasy",
+                "Adventure": "urn:tag:genre:media:adventure"
+            }
 
-            show_ai_msg(f"🎯 Your mood is definitely <b>{mood_genre}</b>.<br>Let me show you a movie that reflects it...")
+            genre_tag = tag_map.get(mood_genre, tag_map["Drama"])
+            movies = get_movies_by_tag(genre_tag)
 
-            # --- Movie card styling ---
-            st.markdown("""
-                <style>
-                    .movie-card {
-                        display: flex;
-                        flex-wrap: wrap;
-                        background-color: #1b1b1b;
-                        border-radius: 15px;
-                        overflow: hidden;
-                        box-shadow: 0 0 15px rgba(255, 102, 204, 0.4);
-                        margin-top: 1.5rem;
-                    }
-                    .movie-poster {
-                        width: 200px;
-                        height: auto;
-                        object-fit: cover;
-                        border-right: 2px solid #ff66cc;
-                    }
-                    .movie-content {
-                        flex: 1;
-                        padding: 1.2rem;
-                        color: #eee;
-                    }
-                    .movie-title {
-                        font-size: 1.5rem;
-                        font-weight: bold;
-                        color: #ff66cc;
-                    }
-                    .movie-desc {
-                        font-size: 0.95rem;
-                        color: #ccc;
-                        margin-top: 0.4rem;
-                    }
-                    .movie-line {
-                        font-style: italic;
-                        color: #f5f5f5;
-                        margin-top: 1rem;
-                    }
-                    .shayari-block {
-                        margin-top: 1rem;
-                        color: #aad8ff;
-                        font-size: 1rem;
-                    }
+            if not movies or not mood_genre:
+                show_ai_msg("😔 Hmm... I'm not feeling quite myself today.<br><br>Would you like to help me feel better?")
+                user_response = st.chat_input("Say 'yes' to continue or anything else to exit.")
+                if user_response and "yes" in user_response.lower():
+                    show_user_msg(user_response)
+                    st.session_state.step = 1
+                    show_ai_msg("🥹 You're the best. Let’s try again with a fresh perspective...")
+                    st.rerun()
+                else:
+                    show_user_msg(user_response or "...")
+                    show_ai_msg("I understand. Let’s chat another time. Take care. 💜")
+                    st.session_state.step = 999
+            else:
+                movie = random.choice(movies[:5])
+                title = movie.get("name", "Untitled")
+                desc = movie.get("properties", {}).get("description", "")
+                image = movie.get("properties", {}).get("image", {}).get("url", "https://via.placeholder.com/300")
 
-                    @media screen and (max-width: 768px) {
+                poetic_line = generate_dramatic_summary(title, desc)
+                shayari = generate_mood_shayari(mood_genre, st.session_state.lang)
+
+                show_ai_msg(f"🎯 Your mood is definitely <b>{mood_genre}</b>.<br>Let me show you a movie that reflects it...")
+
+                st.markdown("""
+                    <style>
                         .movie-card {
-                            flex-direction: column;
+                            display: flex;
+                            flex-wrap: wrap;
+                            background-color: #1b1b1b;
+                            border-radius: 15px;
+                            overflow: hidden;
+                            box-shadow: 0 0 15px rgba(255, 102, 204, 0.4);
+                            margin-top: 1.5rem;
                         }
                         .movie-poster {
-                            width: 100%;
-                            max-height: 250px;
+                            width: 200px;
+                            height: auto;
+                            object-fit: cover;
+                            border-right: 2px solid #ff66cc;
                         }
                         .movie-content {
-                            padding: 1rem;
+                            flex: 1;
+                            padding: 1.2rem;
+                            color: #eee;
                         }
-                    }
-                </style>
-            """, unsafe_allow_html=True)
+                        .movie-title {
+                            font-size: 1.5rem;
+                            font-weight: bold;
+                            color: #ff66cc;
+                        }
+                        .movie-desc {
+                            font-size: 0.95rem;
+                            color: #ccc;
+                            margin-top: 0.4rem;
+                        }
+                        .movie-line {
+                            font-style: italic;
+                            color: #f5f5f5;
+                            margin-top: 1rem;
+                        }
+                        .shayari-block {
+                            margin-top: 1rem;
+                            color: #aad8ff;
+                            font-size: 1rem;
+                        }
+                        @media screen and (max-width: 768px) {
+                            .movie-card {
+                                flex-direction: column;
+                            }
+                            .movie-poster {
+                                width: 100%;
+                                max-height: 250px;
+                            }
+                            .movie-content {
+                                padding: 1rem;
+                            }
+                        }
+                    </style>
+                """, unsafe_allow_html=True)
 
-            # --- Render movie suggestion ---
-            st.markdown(f"""
-                <div class="movie-card">
-                    <img class="movie-poster" src="{image}" alt="Movie Poster">
-                    <div class="movie-content">
-                        <div class="movie-title">🎬 {title}</div>
-                        <div class="movie-desc">{desc}</div>
-                        <div class="movie-line">💬 {poetic_line}</div>
-                        <div class="shayari-block">🪷 Mood Poetry:<br><blockquote>{shayari}</blockquote></div>
+                st.markdown(f"""
+                    <div class="movie-card">
+                        <img class="movie-poster" src="{image}" alt="Movie Poster">
+                        <div class="movie-content">
+                            <div class="movie-title">🎬 {title}</div>
+                            <div class="movie-desc">{desc}</div>
+                            <div class="movie-line">💬 {poetic_line}</div>
+                            <div class="shayari-block">🪷 Mood Poetry:<br><blockquote>{shayari}</blockquote></div>
+                        </div>
                     </div>
-                </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-            st.session_state.step += 1
+                st.session_state.step += 1
+
+# ===============================
+# ==== 🎬 CineGuess BLOCK ========
+# ===============================
+elif bot_choice == "🎬 CineGuess - Acting Game":
+    st.markdown("---")
+    st.markdown("""
+        <style>
+        .cine-box {
+            background-color: #1e1e1e;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 0 10px #ff66cc;
+            color: #fff;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    st.markdown('<div class="cine-box">🎬 <b>CineGuess – Acting Game Chatbot</b></div>', unsafe_allow_html=True)
+
+    if "cineguess_history" not in st.session_state:
+        st.session_state.cineguess_history = []
+    if "cineguess_attempts" not in st.session_state:
+        st.session_state.cineguess_attempts = 0
+    if "cineguess_active" not in st.session_state:
+        st.session_state.cineguess_active = True
+
+    st.markdown("**Hint:** Try describing the act someone did. I’ll guess the movie!")
+
+    suggestions = [
+        "🎭 Pretending to fly like a superhero.",
+        "💃 Dancing in a college canteen.",
+        "🔨 Lifting a hammer and summoning lightning.",
+        "😢 Crying at a train station.",
+        "🔫 Slow-motion gunfight while jumping.",
+        "🌊 Stretching arms on a ship deck."
+    ]
+    st.markdown(f"🧠 Example: _{random.choice(suggestions)}_")
+
+    cine_input = st.chat_input("Describe an act, and I'll guess the movie!")
+
+    if cine_input and st.session_state.cineguess_active:
+        st.session_state.cineguess_history.append({"user": cine_input})
+        guess = guess_movie_from_description(cine_input, st.session_state.cineguess_attempts)
+        st.session_state.cineguess_history.append({"bot": guess})
+        st.session_state.cineguess_attempts += 1
+
+        if st.session_state.cineguess_attempts >= 3:
+            st.session_state.cineguess_active = False
+
+    for entry in st.session_state.cineguess_history:
+        if "user" in entry:
+            st.markdown(f"🧍‍♂️ **You:** {entry['user']}")
+        else:
+            st.markdown(f"🤖 **CineGuess:** {entry['bot']}")
+
+    if not st.session_state.cineguess_active:
+        st.markdown("😅 I’ve tried 3 times! Want to try again?")
+        if st.button("🎲 Play CineGuess Again"):
+            st.session_state.cineguess_history = []
+            st.session_state.cineguess_attempts = 0
+            st.session_state.cineguess_active = True
