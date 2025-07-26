@@ -100,3 +100,17 @@ def safe_image(movie):
 
 def get_aka_titles(movie):
     return [aka["value"] for aka in movie.get("properties", {}).get("akas", [])]
+
+
+def guess_movie_from_description(desc, attempt=0):
+    desc = desc.lower()
+    if "fly" in desc or "cape" in desc:
+        return ["Superman", "Krrish", "Iron Man"][attempt]
+    if "dance" in desc and "college" in desc:
+        return ["Student of the Year", "Gully Boy", "Step Up"][attempt]
+    if "hammer" in desc or "thunder" in desc:
+        return ["Thor", "Thor: Ragnarok", "Avengers"][attempt]
+    return random.choice([
+        "Dhoom 2", "Inception", "Bahubali", "3 Idiots", "Titanic", "Jawan"
+    ])
+
