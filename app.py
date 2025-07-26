@@ -3,10 +3,14 @@ import random
 from qloo_client import get_movies_by_tag
 from utils import generate_dramatic_summary, generate_mood_shayari, ask_llm_for_question, infer_genre_from_answers
 
+
 import base64
 from pathlib import Path
 from utils import guess_movie_from_description  # make sure it's imported
 
+
+
+guess = guess_movie_from_description(cine_input, st.session_state.cineguess_attempts)
 # ─── CineGuess Chatbot ────────────────────────────────
 st.markdown("---")
 st.markdown("""
