@@ -10,8 +10,6 @@ from utils import guess_movie_from_description  # make sure it's imported
 
 
 
-guess = guess_movie_from_description(cine_input, st.session_state.cineguess_attempts)
-# ─── CineGuess Chatbot ────────────────────────────────
 # ─── CineGuess Chatbot ────────────────────────────────
 st.markdown("---")
 st.markdown("""
