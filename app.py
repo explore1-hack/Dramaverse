@@ -12,6 +12,7 @@ from utils import guess_movie_from_description  # make sure it's imported
 
 guess = guess_movie_from_description(cine_input, st.session_state.cineguess_attempts)
 # ─── CineGuess Chatbot ────────────────────────────────
+# ─── CineGuess Chatbot ────────────────────────────────
 st.markdown("---")
 st.markdown("""
     <style>
@@ -51,13 +52,16 @@ cine_input = st.chat_input("Describe an act, and I'll guess the movie!")
 
 if cine_input and st.session_state.cineguess_active:
     st.session_state.cineguess_history.append({"user": cine_input})
-
+    
+    # ✅ This line must be here, not at the top!
     guess = guess_movie_from_description(cine_input, st.session_state.cineguess_attempts)
+
     st.session_state.cineguess_history.append({"bot": guess})
     st.session_state.cineguess_attempts += 1
 
     if st.session_state.cineguess_attempts >= 3:
         st.session_state.cineguess_active = False
+
 
 # Display CineGuess chat
 for entry in st.session_state.cineguess_history:
