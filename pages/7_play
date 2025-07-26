@@ -1,0 +1,65 @@
+import streamlit as st
+import random
+from utils import guess_movie_from_description  # create this LLM logic separately
+
+if "cineguess_history" not in st.session_state:
+    st.session_state.cineguess_history = []
+if "cineguess_attempts" not in st.session_state:
+    st.session_state.cineguess_attempts = 0
+if "cineguess_active" not in st.session_state:
+    st.session_state.cineguess_active = True
+
+st.markdown("""
+<style>
+.cine-box {
+    background-color: #1e1e1e;
+    padding: 1rem;
+    margin-top: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 0 10px #ff66cc;
+    color: #fff;
+}
+</style>
+""", unsafe_allow_html=True)
+
+with st.container():
+    st.markdown('<div class="cine-box">🎬 <b>CineGuess: Describe the Act, I’ll Guess the Movie!</b></div>', unsafe_allow_html=True)
+
+    st.markdown("**Need help?** Try one of these questions:")
+    st.write(random.choice([
+        "🤔 Describe an act you saw and I’ll try to guess the movie!",
+        "🎭 Was the actor pretending to fight, cry, or dance? Tell me!",
+        "👀 What objects were used? A gun, umbrella, or a rose?",
+        "💃 Any iconic pose or dialogue they acted out?",
+        "🎬 Was it emotional, funny, or heroic? Give me a vibe.",
+        "⚡ What’s one action they did repeatedly?",
+        "📍Where did they act like they were? A school, battlefield, or palace?"
+    ]))
+
+    user_input = st.chat_input("Describe the act here...")
+    
+    if user_input and st.session_state.cineguess_active:
+        st.session_state.cineguess_history.append({"user": user_input})
+
+        # Guess logic: LLM or random fun guesses
+        guess = guess_movie_from_description(user_input, attempt=st.session_state.cineguess_attempts)
+
+        st.session_state.cineguess_history.append({"bot": guess})
+        st.session_state.cineguess_attempts += 1
+
+        if st.session_state.cineguess_attempts >= 3:
+            st.session_state.cineguess_active = False
+
+    # Display history
+    for chat in st.session_state.cineguess_history:
+        if "user" in chat:
+            st.markdown(f"🧍‍♂️ **You:** {chat['user']}")
+        else:
+            st.markdown(f"🤖 **CineGuess:** {chat['bot']}")
+
+    if not st.session_state.cineguess_active:
+        st.markdown("😅 I’ve tried my best! You got me this time. Want to try again?")
+        if st.button("🎲 Play Again"):
+            st.session_state.cineguess_history = []
+            st.session_state.cineguess_attempts = 0
+            st.session_state.cineguess_active = True
