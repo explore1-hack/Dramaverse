@@ -5,6 +5,70 @@ from utils import generate_dramatic_summary, generate_mood_shayari, ask_llm_for_
 
 import base64
 from pathlib import Path
+from utils import guess_movie_from_description  # make sure it's imported
+
+# ─── CineGuess Chatbot ────────────────────────────────
+st.markdown("---")
+st.markdown("""
+    <style>
+    .cine-box {
+        background-color: #1e1e1e;
+        padding: 1rem;
+        margin-top: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 0 10px #ff66cc;
+        color: #fff;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="cine-box">🎬 <b>CineGuess – Acting Game Chatbot</b></div>', unsafe_allow_html=True)
+
+if "cineguess_history" not in st.session_state:
+    st.session_state.cineguess_history = []
+if "cineguess_attempts" not in st.session_state:
+    st.session_state.cineguess_attempts = 0
+if "cineguess_active" not in st.session_state:
+    st.session_state.cineguess_active = True
+
+st.markdown("**Hint:** Try describing the act someone did. I’ll guess the movie!")
+
+suggestions = [
+    "🎭 Pretending to fly like a superhero.",
+    "💃 Dancing in a college canteen.",
+    "🔨 Lifting a hammer and summoning lightning.",
+    "😢 Crying at a train station.",
+    "🔫 Slow-motion gunfight while jumping.",
+    "🌊 Stretching arms on a ship deck."
+]
+st.markdown(f"🧠 Example: _{random.choice(suggestions)}_")
+
+cine_input = st.chat_input("Describe an act, and I'll guess the movie!")
+
+if cine_input and st.session_state.cineguess_active:
+    st.session_state.cineguess_history.append({"user": cine_input})
+
+    guess = guess_movie_from_description(cine_input, st.session_state.cineguess_attempts)
+    st.session_state.cineguess_history.append({"bot": guess})
+    st.session_state.cineguess_attempts += 1
+
+    if st.session_state.cineguess_attempts >= 3:
+        st.session_state.cineguess_active = False
+
+# Display CineGuess chat
+for entry in st.session_state.cineguess_history:
+    if "user" in entry:
+        st.markdown(f"🧍‍♂️ **You:** {entry['user']}")
+    else:
+        st.markdown(f"🤖 **CineGuess:** {entry['bot']}")
+
+# Reset option
+if not st.session_state.cineguess_active:
+    st.markdown("😅 I’ve tried 3 times! Want to try again?")
+    if st.button("🎲 Play CineGuess Again"):
+        st.session_state.cineguess_history = []
+        st.session_state.cineguess_attempts = 0
+        st.session_state.cineguess_active = True
 
 # --- Background Image Setup ---
 def add_bg_from_local(image_path):
