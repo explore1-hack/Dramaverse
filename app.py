@@ -80,7 +80,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-you havent give the app.py fully  import streamlit as st
+import streamlit as st
 import random
 from qloo_client import get_movies_by_tag
 from utils import generate_dramatic_summary, generate_mood_shayari, ask_llm_for_question, infer_genre_from_answers, guess_movie_from_description
